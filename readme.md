@@ -121,7 +121,7 @@ python web_WiseKnight.py --help
 
 ## 🎯 使用示例
 
-data_sample文件夹下提供了上述五类数据的样例数据，每类样例数据各5张可以用来展示使用。
+data_sample文件夹下提供了上述5种类别标签的样例数据，每类样例数据各5张以供展示使用。
 
 <div align="center">
 <h1><strong>消防隐患识别智慧骑士系统使用展示</strong><h1>
