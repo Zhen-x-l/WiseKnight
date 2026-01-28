@@ -48,7 +48,7 @@
 
 ### 安装步骤
 
-0. **安装 Git LFS（只需要一次）以便可以顺利下载下来较大的模型权重文件**
+1. **安装 Git LFS以便可以顺利下载较大的模型权重文件**
 ```bash
 # Ubuntu / Debian
 sudo apt install git-lfs
