@@ -128,3 +128,7 @@ data_sample目录下提供了上述5种类别标签的样例数据，每类样�
 
 ![WiseKnightSystem](assets/images/show.gif)
 </div>
+
+# License
+
+This repository is licensed under the [Apache License 2.0](LICENSE).
