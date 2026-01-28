@@ -48,6 +48,18 @@
 
 ### 安装步骤
 
+0. **安装 Git LFS（只需要一次）以便可以顺利下载下来较大的模型权重文件**
+```bash
+# Ubuntu / Debian
+sudo apt install git-lfs
+
+# macOS
+brew install git-lfs
+
+# Windows（Git Bash）
+git lfs install
+```
+
 1. **克隆代码库**
 ```bash
 git clone https://github.com/Zhen-x-l/WiseKnight.git
