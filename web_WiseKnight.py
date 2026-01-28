@@ -1,11 +1,7 @@
-# 首先导入 unsloth 以避免警告
 import os
 os.environ['UNSLOTH_IMPORT_FIRST'] = '1'
 
-# 现在导入 unsloth
 from unsloth import FastVisionModel
-
-# 然后导入其他库
 import argparse
 import torch
 import warnings
@@ -21,13 +17,8 @@ warnings.filterwarnings('ignore')
 
 
 def init_model(model_path):
-    """
-    加载模型：优先尝试本地，失败则从远程下载
-    """
-    # 检查是否为本地路径
     is_local_path = os.path.exists(model_path)
     
-    # 设置加载配置
     load_kwargs = {
         "load_in_4bit": True,
         "max_seq_length": 8192,
@@ -35,61 +26,56 @@ def init_model(model_path):
     }
     
     if is_local_path:
-        # 优先尝试本地加载
-        print(f"尝试加载本地模型: {model_path}")
+        print(f"加载本地模型: {model_path}")
         try:
-            # 设置离线模式
             os.environ['TRANSFORMERS_OFFLINE'] = '1'
             os.environ['HF_HUB_OFFLINE'] = '1'
             
             model, tokenizer = FastVisionModel.from_pretrained(
                 model_name=model_path,
-                local_files_only=True,  # 强制本地模式
+                local_files_only=True,
                 **load_kwargs
             )
-            print("☑️  本地模型加载成功")
+            print("本地模型加载成功")
             
         except Exception as e:
             print(f"本地模型加载失败: {e}")
-            print("尝试从远程下载模型...")
+            print("尝试远程下载...")
             
-            # 清除离线设置，允许网络连接
             os.environ.pop('TRANSFORMERS_OFFLINE', None)
             os.environ.pop('HF_HUB_OFFLINE', None)
             
             try:
                 model, tokenizer = FastVisionModel.from_pretrained(
                     model_name=model_path,
-                    local_files_only=False,  # 允许远程下载
+                    local_files_only=False,
                     **load_kwargs
                 )
-                print("☑️  远程模型下载并加载成功")
+                print("远程模型下载成功")
                 
             except Exception as e2:
                 raise RuntimeError(f"远程模型加载失败: {e2}")
     
     else:
-        # 直接尝试从远程加载（可能是Hugging Face模型ID）
-        print(f"尝试从远程加载模型: {model_path}")
+        print(f"远程加载模型: {model_path}")
         try:
             model, tokenizer = FastVisionModel.from_pretrained(
                 model_name=model_path,
                 local_files_only=False,
                 **load_kwargs
             )
-            print("☑️  远程模型加载成功")
+            print("远程模型加载成功")
             
         except Exception as e:
             raise RuntimeError(f"模型加载失败: {e}")
     
-    # 启用推理模式
     try:
         FastVisionModel.for_inference(model)
-        print("☑️  推理模式已启用")
+        print("推理模式已启用")
     except Exception as e:
-        print(f"警告：启用推理模式失败，但模型已加载: {e}")
+        print(f"警告：启用推理模式失败: {e}")
     
-    print("☑️  模型加载完毕！")
+    print("模型加载完毕！")
     return model.eval().to(args.device), tokenizer
 
 
@@ -106,9 +92,6 @@ class CustomStreamer(TextStreamer):
 
 
 def prepare_messages(image, prompt):
-    """
-    准备 Unsloth 格式的消息
-    """
     messages = [
         {"role": "user", "content": [
             {"type": "image"},
@@ -119,9 +102,6 @@ def prepare_messages(image, prompt):
 
 
 def chat(prompt, current_image_path, show_think=False):
-    """
-    与模型聊天，分析图片
-    """
     if not current_image_path:
         yield "错误：图片不能为空。"
         return
@@ -132,14 +112,11 @@ def chat(prompt, current_image_path, show_think=False):
         yield f"错误：无法加载图片 - {str(e)}"
         return
     
-    # 准备消息
     messages = prepare_messages(image, prompt)
     
-    # 使用和.ipynb中相同的方式处理输入
     try:
         input_text = tokenizer.apply_chat_template(messages, add_generation_prompt=True)
         
-        # 处理图像输入
         inputs = tokenizer(
             image,
             input_text,
@@ -157,11 +134,10 @@ def chat(prompt, current_image_path, show_think=False):
     def _generate():
         with torch.no_grad():
             try:
-                # 使用确定的生成参数，和.ipynb中保持一致
                 output_ids = model.generate(
                     **inputs,
                     max_new_tokens=args.max_seq_len,
-                    do_sample=False,  # 不使用随机采样
+                    do_sample=False,
                     temperature=1.0,
                     top_p=1.0,
                     top_k=0,
@@ -177,7 +153,6 @@ def chat(prompt, current_image_path, show_think=False):
     Thread(target=_generate).start()
     
     response = ''
-    # 无论是否显示思考过程，都使用流式输出以保持UI一致
     while True:
         text = queue.get()
         if text is None:
@@ -187,7 +162,6 @@ def chat(prompt, current_image_path, show_think=False):
 
 
 def load_logo_base64(logo_path):
-    """加载logo图片并转换为base64格式"""
     if not logo_path or not os.path.exists(logo_path):
         return None
     
@@ -196,7 +170,6 @@ def load_logo_base64(logo_path):
             img_data = f.read()
         img_base64 = base64.b64encode(img_data).decode('utf-8')
         
-        # 检测图片格式
         if logo_path.lower().endswith('.png'):
             mime_type = 'image/png'
         elif logo_path.lower().endswith('.jpg') or logo_path.lower().endswith('.jpeg'):
@@ -213,24 +186,20 @@ def load_logo_base64(logo_path):
 
 
 def format_chat_message(message, show_think=False):
-    """格式化聊天消息，根据是否显示思考过程来提取标签并美化显示"""
     if not message:
         return ""
     
     message = message.strip()
     
-    # 如果消息格式正确，提取think和label标签
     think_content = ""
     label_content = ""
     
-    # 提取<think>标签内容
     if "<|think|>" in message:
         think_pattern = r'<\|think\|>(.*?)<\|think\|>'
         think_match = re.search(think_pattern, message, re.DOTALL)
         if think_match:
             think_content = think_match.group(1).strip()
     
-    # 提取<label>标签内容
     if "<|label|>" in message:
         label_pattern = r'<\|label\|>(.*?)<\|label\|>'
         label_match = re.search(label_pattern, message, re.DOTALL)
@@ -239,7 +208,6 @@ def format_chat_message(message, show_think=False):
     
     formatted_message = ""
 
-    # helper: hex (#rrggbb) -> rgba(r,g,b,a)
     def hex_to_rgba(hex_color, alpha=1.0):
         try:
             hex_color = hex_color.lstrip('#')
@@ -252,12 +220,10 @@ def format_chat_message(message, show_think=False):
         except Exception:
             return f'rgba(0,0,0,{alpha})'
     
-    # 格式化think内容（仅当show_think为True且有思考内容时显示）
     if think_content and show_think:
         lines = [line.strip() for line in think_content.split('\n') if line.strip()]
         formatted_think = ""
         for i, line in enumerate(lines, 1):
-            # 保留原始编号格式
             if line.startswith(f"{i}.") or re.match(r'^\d+\.', line):
                 formatted_think += f"{line}<br>"
             else:
@@ -266,19 +232,16 @@ def format_chat_message(message, show_think=False):
         formatted_message += f"""
         <div style=\"background: rgba(147, 51, 234, 0.08); padding: 20px; border-radius: 12px; border-left: 5px solid #9333ea; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);\">\n            <div style=\"display: flex; align-items: center; margin-bottom: 15px;\">\n                <div style=\"background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px; box-shadow: 0 2px 4px rgba(147, 51, 234, 0.3);\">\n                    <span style=\"color: white; font-size: 18px; font-weight: bold;\">🧠</span>\n                </div>\n                <span style=\"font-weight: bold; color: #9333ea; font-size: 18px; text-shadow: 0 1px 2px rgba(0,0,0,0.1);\">已思考</span>\n            </div>\n            <div style=\"color: #374151; line-height: 1.7; font-size: 15px; padding-left: 10px;\">\n                {formatted_think}\n            </div>\n        </div>\n        """
     
-    # 格式化label内容（总是显示）
     if label_content:
-        # 根据标签设置不同的颜色
         color_map = {
-            "非楼道": "#6b7280",    # 灰色
-            "高风险": "#ef4444",    # 红色
-            "中风险": "#f59e0b",    # 橙色
-            "低风险": "#10b981",    # 绿色
-            "无风险": "#3b82f6",    # 蓝色
+            "非楼道": "#6b7280",
+            "高风险": "#ef4444",
+            "中风险": "#f59e0b",
+            "低风险": "#10b981",
+            "无风险": "#3b82f6",
         }
         label_color = color_map.get(label_content, "#9333ea")
         
-        # 获取风险等级含义描述
         risk_desc = {
             "非楼道": "非楼道场景",
             "高风险": "存在严重安全隐患",
@@ -287,16 +250,13 @@ def format_chat_message(message, show_think=False):
             "无风险": "非常安全"
         }.get(label_content, "未知风险等级")
         
-        # 计算半透明背景和阴影颜色
         rgba_bg = hex_to_rgba(label_color, 0.08)
         rgba_shadow = hex_to_rgba(label_color, 0.3)
         
         formatted_message += f"""
         <div style=\"background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.95) 100%); padding: 25px; border-radius: 15px; border: 3px solid {label_color}; text-align: center; box-shadow: 0 6px 20px {rgba_shadow};\">\n            <div style=\"display: flex; flex-direction: column; align-items: center; margin-bottom: 20px;\">\n                <div style=\"background: {label_color}; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; box-shadow: 0 4px 8px {rgba_shadow};\">\n                    <span style=\"color: white; font-size: 24px;\">🏷️</span>\n                </div>\n                <span style=\"font-size: 22px; font-weight: bold; color: #1f2937; margin-bottom: 8px;\">检测结果</span>\n                <span style=\"font-size: 16px; color: #6b7280;\">{risk_desc}</span>\n            </div>\n            <div style=\"font-size: 32px; font-weight: bold; color: {label_color}; padding: 20px; background: {rgba_bg}; border-radius: 12px; display: inline-block; min-width: 180px; margin-bottom: 15px; border: 2px solid {label_color};\">\n                {label_content}\n            </div>\n            <div style=\"margin-top: 15px; font-size: 14px; color: #6b7280; font-style: italic;\">\n                消防隐患等级\n            </div>\n        </div>\n        """
     
-    # 如果没有格式化内容，显示原始消息（这通常发生在模型直接输出标签的情况下）
     if not formatted_message:
-        # 尝试从原始消息中提取标签
         direct_label_match = re.search(r'(非楼道|高风险|中风险|低风险|无风险)', message)
         if direct_label_match:
             label_content = direct_label_match.group(1)
@@ -322,7 +282,6 @@ def format_chat_message(message, show_think=False):
             formatted_message += f"""
             <div style=\"background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.95) 100%); padding: 25px; border-radius: 15px; border: 3px solid {label_color}; text-align: center; box-shadow: 0 6px 20px {rgba_shadow};\">\n                <div style=\"display: flex; flex-direction: column; align-items: center; margin-bottom: 20px;\">\n                    <div style=\"background: {label_color}; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; box-shadow: 0 4px 8px {rgba_shadow};\">\n                        <span style=\"color: white; font-size: 24px;\">🏷️</span>\n                    </div>\n                    <span style=\"font-size: 22px; font-weight: bold; color: #1f2937; margin-bottom: 8px;\">检测结果</span>\n                    <span style=\"font-size: 16px; color: #6b7280;\">{risk_desc}</span>\n                </div>\n                <div style=\"font-size: 32px; font-weight: bold; color: {label_color}; padding: 20px; background: {rgba_bg}; border-radius: 12px; display: inline-block; min-width: 180px; margin-bottom: 15px; border: 2px solid {label_color};\">\n                    {label_content}\n                </div>\n                <div style=\"margin-top: 15px; font-size: 14px; color: #6b7280; font-style: italic;\">\n                    消防隐患等级\n                </div>\n            </div>\n            """
         else:
-            # 如果没有识别到标签，显示原始消息
             formatted_message = f"""
             <div style=\"padding: 20px; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); color: #374151; border-radius: 12px; border: 1px solid #cbd5e1; box-shadow: 0 2px 8px rgba(0,0,0,0.05);\">\n                <div style=\"display: flex; align-items: center; margin-bottom: 10px;\">\n                    <span style=\"font-weight: bold; color: #64748b;\">📋 分析结果：</span>\n                </div>\n                <div style=\"font-size: 15px; line-height: 1.6;\">\n                    {message}\n                </div>\n            </div>\n            """
     
@@ -330,46 +289,36 @@ def format_chat_message(message, show_think=False):
 
 
 def format_think_message_during_analysis(message, show_think):
-    """在分析过程中格式化思考消息（根据是否显示思考过程）"""
     if not message or not show_think:
         return ""
     
     message = message.strip()
     
-    # 如果消息以<|think|>开头，我们认为是思考内容
     if message.startswith("<|think|>") or "<|think|>" in message:
-        # 先找到第一个<|think|>之后的内容
-        think_start = message.find("<|think|>") + 9  # 9是"<|think|>"的长度
+        think_start = message.find("<|think|>") + 9
         
-        # 然后找第一个<|think|>结束标签（从think_start开始找）
         think_end = message.find("<|think|>", think_start)
         
         think_content = ""
         if think_end != -1:
-            # 找到了结束标签
             think_content = message[think_start:think_end].strip()
         else:
-            # 没有结束标签，取从开始到字符串末尾
-            # 但要排除可能已经出现的<|label|>
             label_start = message.find("<|label|>", think_start)
             if label_start != -1:
                 think_content = message[think_start:label_start].strip()
             else:
                 think_content = message[think_start:].strip()
         
-        # 格式化思考内容
         if think_content:
             lines = [line.strip() for line in think_content.split('\n') if line.strip()]
             formatted_think = ""
             
             for i, line in enumerate(lines, 1):
-                # 检查是否已经有编号
                 if re.match(r'^\d+\.', line):
                     formatted_think += f"<div style='margin-bottom: 8px; padding: 8px 12px; background: rgba(147, 51, 234, 0.05); border-radius: 8px; border-left: 3px solid #9333ea;'>{line}</div>"
                 else:
                     formatted_think += f"<div style='margin-bottom: 8px; padding: 8px 12px; background: rgba(147, 51, 234, 0.05); border-radius: 8px; border-left: 3px solid #9333ea;'>{i}. {line}</div>"
             
-            # 只有当有格式化内容时才返回
             if formatted_think:
                 return f"""
                 <div style=\"background: rgba(147, 51, 234, 0.08); padding: 20px; border-radius: 12px; border-left: 5px solid #9333ea; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);\">
@@ -389,7 +338,6 @@ def format_think_message_during_analysis(message, show_think):
 
 
 def get_prompt_without_think():
-    """获取不显示思考过程的prompt版本（加上空的think标签）"""
     base_prompt = """你将获得该一张图像并逐步分析该图像的标签，标签可为 "非楼道"、"高风险"、"中风险"、"低风险" 或 "无风险"。
     评估规则：
     如果图像不属于楼道场景，则正确标签为 "非楼道"。
@@ -409,7 +357,6 @@ def get_prompt_without_think():
 
 
 def get_prompt_with_think():
-    """获取显示思考过程的prompt版本（原始版本）"""
     base_prompt = """你将获得该一张图像并逐步分析该图像的标签，标签可为 "非楼道"、"高风险"、"中风险"、"低风险" 或 "无风险"。
     评估规则：
     如果图像不属于楼道场景，则正确标签为 "非楼道"。
@@ -432,10 +379,6 @@ def get_prompt_with_think():
 
 
 def launch_gradio_server(server_name="0.0.0.0", server_port=7788):
-    """
-    启动Gradio服务器
-    """
-    # 加载logo图片
     logo_path = args.logo_path
     logo_data = None
     
@@ -446,7 +389,6 @@ def launch_gradio_server(server_name="0.0.0.0", server_port=7788):
         print("未找到指定logo图片，使用默认样式。")
     
     with gr.Blocks(theme=gr.themes.Soft(), title="消防隐患识别智慧骑士系统") as demo:      
-        # 标题区域
         if logo_data:
             gr.HTML(f"""
                 <div style=\"text-align: center; margin-bottom: 2.5rem; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2); position: relative; overflow: hidden;\">\n                    <div style=\"position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%;\"></div>\n                    <div style=\"position: absolute; bottom: -80px; left: -80px; width: 250px; height: 250px; background: rgba(255,255,255,0.05); border-radius: 50%;\"></div>\n                    \n                    <div style=\"display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; position: relative; z-index: 2;\">\n                        <img src=\"{logo_data}\" style=\"height: 100px; width: 100px; object-fit: contain; margin-right: 2rem; border-radius: 50%; border: 5px solid rgba(255,255,255,0.8); box-shadow: 0 6px 15px rgba(0,0,0,0.3);\">\n                        <div style=\"text-align: left;\">\n                            <h1 style=\"font-size: 44px; color: white; margin: 0; font-weight: 900; text-shadow: 2px 3px 6px rgba(0,0,0,0.4); letter-spacing: 0.5px;\">消防隐患识别智慧骑士系统</h1>\n                            <p style=\"font-size: 20px; color: rgba(255,255,255,0.95); margin: 10px 0 0 0; font-style: italic; font-weight: 300;\">视觉大模型分析 · 识别楼道消防隐患</p>\n                        </div>\n                    </div>\n                    <div style=\"position: relative; z-index: 2; margin-top: 1rem;\">\n                        <div style=\"display: inline-block; background: rgba(255,255,255,0.15); padding: 8px 20px; border-radius: 25px; border: 1px solid rgba(255,255,255,0.3);\">\n                            <span style=\"font-size: 14px; color: rgba(255,255,255,0.9); font-family: 'Courier New', monospace;\">\n                                💡 智能识别 · ⚠️ 风险分析 · 🛡️ 安全评估\n                            </span>\n                        </div>\n                    </div>\n                </div>\n            """)
@@ -454,20 +396,18 @@ def launch_gradio_server(server_name="0.0.0.0", server_port=7788):
             gr.HTML(f"""
                 <div style=\"text-align: center; margin-bottom: 2.5rem; padding: 2.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);\">\n                    <h1 style=\"font-size: 48px; color: white; margin: 0 0 15px 0; font-weight: 900; text-shadow: 2px 3px 8px rgba(0,0,0,0.4);\">\n                        🔥 消防隐患识别智慧骑士系统 🔥\n                    </h1>\n                    <p style=\"font-size: 22px; color: rgba(255,255,255,0.95); margin: 0 0 20px 0; font-style: italic; font-weight: 300;\">\n                        视觉大模型分析 · 识别楼道消防隐患\n                    </p>\n                    <div style=\"display: inline-block; background: rgba(255,255,255,0.2); padding: 10px 25px; border-radius: 30px; border: 2px solid rgba(255,255,255,0.4);\">\n                        <span style=\"font-size: 16px; color: white; font-weight: 500;\">\n                            💡 智能识别 · ⚠️ 风险分析 · 🛡️ 安全评估\n                        </span>\n                    </div>\n                </div>\n            """)
         
-        # 使用Tab布局来均衡左右分布
         with gr.Row():
-            # 左侧：图片上传和控制区域 (45%)
             with gr.Column(scale=5, min_width=400):
                 with gr.Group():
                     gr.Markdown("### 📸 图片上传区域")
                     image_input = gr.Image(
                         type="filepath", 
-                        label="",  # 清空标签文本
+                        label="",
                         height=320,
                         interactive=True,
                         elem_id="image_upload",
-                        sources=["upload"],  # 只保留上传功能
-                        show_label=False  # 添加这行来彻底隐藏标签
+                        sources=["upload"],
+                        show_label=False
                     )
                     gr.Markdown("""
                     <div style="text-align: center; margin-top: 10px; color: #6b7280; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;">
@@ -477,7 +417,6 @@ def launch_gradio_server(server_name="0.0.0.0", server_port=7788):
                 
                 with gr.Group():
                     gr.Markdown("### ⚙️ 分析设置")
-                    # 添加"思考分析"复选框
                     think_analysis_checkbox = gr.Checkbox(
                         label="🧠 深度思考",
                         value=False,
@@ -519,7 +458,6 @@ def launch_gradio_server(server_name="0.0.0.0", server_port=7788):
                     **⚪ 非楼道**：图像不属于楼道场景
                     """)
             
-            # 分析结果和系统状态 (55%)
             with gr.Column(scale=7, min_width=500):
                 with gr.Group():
                     gr.Markdown("### 📝 视觉大模型分析")
@@ -535,7 +473,6 @@ def launch_gradio_server(server_name="0.0.0.0", server_port=7788):
                         elem_id="analysis_result",
                     )
 
-        # 底部信息栏
         gr.HTML("""
         <div style="margin-top: 30px; padding: 15px; background: #f8fafc; border-radius: 10px; border-top: 3px solid #667eea; text-align: center;">
             <div style="margin-top: 10px; font-size: 12px; color: #9ca3af;">
@@ -544,36 +481,27 @@ def launch_gradio_server(server_name="0.0.0.0", server_port=7788):
         </div>
         """)
         
-        # 添加自定义CSS样式
         gr.HTML("""
         <style>      
-        /* 确保所有中文和英文字符正常显示 */
         body, .gradio-container {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Microsoft YaHei', 'PingFang SC', 'Hiragino Sans GB', sans-serif !important;
         }
         </style>
         """)
         
-        # 定义处理函数
         current_image_path = gr.State("")
         history_state = gr.State([])
         show_think_state = gr.State(False)
         
         def update_image_path(image):
-            """更新当前图片路径"""
             if image:
                 return image
             return ""
         
         def update_think_setting(show_think):
-            """更新是否显示思考分析的设置"""
             return show_think
         
         def render_history_html(history):
-            """
-            将 [(user, bot_html)] 渲染为 HTML
-            只显示用户消息；只有在 bot_msg 非 None 时才显示 model 的 HTML。
-            """
             html = ""
             for user_msg, bot_msg in history:
                 html += f"""
@@ -582,15 +510,12 @@ def launch_gradio_server(server_name="0.0.0.0", server_port=7788):
                         {user_msg}
                     </div>
                 """
-                # 仅在有模型返回结果（非 None）时才显示
                 if bot_msg is not None:
                     html += f"<div>{bot_msg}</div>"
-                # 如果 bot_msg 是 None -> 不显示任何占位文本（不闪现小字）
                 html += "</div>"
             return html
         
         def analyze_image(image, show_think, history):
-            """分析图片（简化版本，避免复杂逻辑）"""
             if not image:
                 history.append(("系统", "❌ 错误：请先上传图片"))
                 status_msg = "❌ 未上传图片，请先选择图片"
@@ -598,10 +523,8 @@ def launch_gradio_server(server_name="0.0.0.0", server_port=7788):
 
             filename = os.path.basename(image) if image else "未知图片"
             user_message = f"📦 分析请求 —— 图片: {filename}"
-            # 保持与原来一致：先插入一个占位（bot_msg 为 None）
             history.append((user_message, None))
 
-            # 根据是否显示思考过程设置不同的状态消息和 prompt
             if show_think:
                 status_msg = "⏳ 正在启用深度思考分析图片......"
                 prompt = get_prompt_with_think()
@@ -609,11 +532,9 @@ def launch_gradio_server(server_name="0.0.0.0", server_port=7788):
                 status_msg = "⏳ 正在分析图片......"
                 prompt = get_prompt_without_think()
 
-            # 初始界面
             html = render_history_html(history)
             yield html, status_msg, history, show_think
 
-            # 调用聊天函数 - 传入相应的 prompt
             response_generator = chat(prompt, image, show_think)
 
             try:
@@ -623,20 +544,14 @@ def launch_gradio_server(server_name="0.0.0.0", server_port=7788):
                 for response in response_generator:
                     full_response = response
                     
-                    # 如果显示思考过程，尝试格式化思考内容
                     if show_think:
                         think_html = format_think_message_during_analysis(full_response, show_think)
-                        # 只有当有新的思考内容时才更新显示
                         if think_html and think_html != last_think_html:
                             last_think_html = think_html
                             current_history = history[:-1] + [(user_message, think_html)]
                             html = render_history_html(current_history)
                             yield html, status_msg, history, show_think
-                    else:
-                        # 不显示思考过程，保持占位不变
-                        pass
 
-                # 分析完成，显示最终格式化结果
                 formatted_response = format_chat_message(full_response, show_think)
                 history = history[:-1] + [(user_message, formatted_response)]
                 final_html = render_history_html(history)
@@ -658,7 +573,6 @@ def launch_gradio_server(server_name="0.0.0.0", server_port=7788):
         def clear_all():
             return None, False, "", "", [], False
         
-        # 绑定事件
         image_input.change(
             fn=update_image_path,
             inputs=image_input,
@@ -669,21 +583,18 @@ def launch_gradio_server(server_name="0.0.0.0", server_port=7788):
             outputs=status
         )
         
-        # 更新思考分析设置
         think_analysis_checkbox.change(
             fn=update_think_setting,
             inputs=think_analysis_checkbox,
             outputs=show_think_state
         )
         
-        # 开始分析按钮
         submit_btn.click(
             fn=analyze_image,
             inputs=[image_input, show_think_state, history_state],
             outputs=[result_html, status, history_state, show_think_state]
         )
         
-        # 清空按钮
         clear_btn.click(
             fn=clear_all,
             outputs=[
@@ -702,9 +613,9 @@ def launch_gradio_server(server_name="0.0.0.0", server_port=7788):
             outputs=result_html
         )
     
-    print(f"🚀 消防隐患识别智慧骑士系统已启动")
-    print(f"📁 使用的模型路径: {args.model_path}")
-    print(f"🌐 访问地址: http://{server_name}:{server_port}")
+    print(f"消防隐患识别智慧骑士系统已启动")
+    print(f"使用的模型路径: {args.model_path}")
+    print(f"访问地址: http://{server_name}:{server_port}")
     
     demo.launch(
         server_name=server_name, 
@@ -718,7 +629,6 @@ def launch_gradio_server(server_name="0.0.0.0", server_port=7788):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="消防隐患识别智慧骑士系统")
     
-    # 参数
     parser.add_argument('--model_path', default="model/llama-3-2-11b-vision-instruct-4bit-r16-think/last_v2", type=str, 
                     help="模型路径")
     
@@ -735,9 +645,6 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
 
-    
-    # 初始化模型
     model, tokenizer = init_model(args.model_path)
     
-    # 启动服务器
     launch_gradio_server(server_name="0.0.0.0", server_port=args.port)
