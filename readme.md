@@ -50,13 +50,13 @@
 
 0. **安装Git LFS以便可以顺利下载较大的模型权重文件**
 ```bash
-# Ubuntu / Debian
+# Ubuntu or Debian
 sudo apt install git-lfs
 
 # macOS
 brew install git-lfs
 
-# Windows（Git Bash）
+# Windows(Git Bash)
 git lfs install
 ```
 
