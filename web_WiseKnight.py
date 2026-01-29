@@ -388,13 +388,13 @@ def launch_gradio_server(server_name="0.0.0.0", server_port=7788):
     if not logo_data:
         print("未找到指定logo图片，使用默认样式。")
     
-    with gr.Blocks(theme=gr.themes.Soft(), title="消防隐患识别智慧骑士系统") as demo:      
+    with gr.Blocks(theme=gr.themes.Soft(), title="智慧骑士系统") as demo:      
         if logo_data:
             gr.HTML(f"""
-                <div style=\"text-align: center; margin-bottom: 2.5rem; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2); position: relative; overflow: hidden;\">\n                    <div style=\"position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%;\"></div>\n                    <div style=\"position: absolute; bottom: -80px; left: -80px; width: 250px; height: 250px; background: rgba(255,255,255,0.05); border-radius: 50%;\"></div>\n                    \n                    <div style=\"display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; position: relative; z-index: 2;\">\n                        <img src=\"{logo_data}\" style=\"height: 100px; width: 100px; object-fit: contain; margin-right: 2rem; border-radius: 50%; border: 5px solid rgba(255,255,255,0.8); box-shadow: 0 6px 15px rgba(0,0,0,0.3);\">\n                        <div style=\"text-align: left;\">\n                            <h1 style=\"font-size: 44px; color: white; margin: 0; font-weight: 900; text-shadow: 2px 3px 6px rgba(0,0,0,0.4); letter-spacing: 0.5px;\">消防隐患识别智慧骑士系统</h1>\n                            <p style=\"font-size: 20px; color: rgba(255,255,255,0.95); margin: 10px 0 0 0; font-style: italic; font-weight: 300;\">视觉大模型分析 · 识别楼道消防隐患</p>\n                        </div>\n                    </div>\n                    <div style=\"position: relative; z-index: 2; margin-top: 1rem;\">\n                        <div style=\"display: inline-block; background: rgba(255,255,255,0.15); padding: 8px 20px; border-radius: 25px; border: 1px solid rgba(255,255,255,0.3);\">\n                            <span style=\"font-size: 14px; color: rgba(255,255,255,0.9); font-family: 'Courier New', monospace;\">\n                                💡 智能识别 · ⚠️ 风险分析 · 🛡️ 安全评估\n                            </span>\n                        </div>\n                    </div>\n                </div>\n            """)
+                <div style=\"text-align: center; margin-bottom: 2.5rem; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2); position: relative; overflow: hidden;\">\n                    <div style=\"position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%;\"></div>\n                    <div style=\"position: absolute; bottom: -80px; left: -80px; width: 250px; height: 250px; background: rgba(255,255,255,0.05); border-radius: 50%;\"></div>\n                    \n                    <div style=\"display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; position: relative; z-index: 2;\">\n                        <img src=\"{logo_data}\" style=\"height: 100px; width: 100px; object-fit: contain; margin-right: 2rem; border-radius: 50%; border: 5px solid rgba(255,255,255,0.8); box-shadow: 0 6px 15px rgba(0,0,0,0.3);\">\n                        <div style=\"text-align: left;\">\n                            <h1 style=\"font-size: 44px; color: white; margin: 0; font-weight: 900; text-shadow: 2px 3px 6px rgba(0,0,0,0.4); letter-spacing: 0.5px;\">智慧骑士系统</h1>\n                            <p style=\"font-size: 20px; color: rgba(255,255,255,0.95); margin: 10px 0 0 0; font-style: italic; font-weight: 300;\">视觉大模型分析 · 识别楼道消防隐患</p>\n                        </div>\n                    </div>\n                    <div style=\"position: relative; z-index: 2; margin-top: 1rem;\">\n                        <div style=\"display: inline-block; background: rgba(255,255,255,0.15); padding: 8px 20px; border-radius: 25px; border: 1px solid rgba(255,255,255,0.3);\">\n                            <span style=\"font-size: 14px; color: rgba(255,255,255,0.9); font-family: 'Courier New', monospace;\">\n                                💡 智能识别 · ⚠️ 风险分析 · 🛡️ 安全评估\n                            </span>\n                        </div>\n                    </div>\n                </div>\n            """)
         else:
             gr.HTML(f"""
-                <div style=\"text-align: center; margin-bottom: 2.5rem; padding: 2.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);\">\n                    <h1 style=\"font-size: 48px; color: white; margin: 0 0 15px 0; font-weight: 900; text-shadow: 2px 3px 8px rgba(0,0,0,0.4);\">\n                        🔥 消防隐患识别智慧骑士系统 🔥\n                    </h1>\n                    <p style=\"font-size: 22px; color: rgba(255,255,255,0.95); margin: 0 0 20px 0; font-style: italic; font-weight: 300;\">\n                        视觉大模型分析 · 识别楼道消防隐患\n                    </p>\n                    <div style=\"display: inline-block; background: rgba(255,255,255,0.2); padding: 10px 25px; border-radius: 30px; border: 2px solid rgba(255,255,255,0.4);\">\n                        <span style=\"font-size: 16px; color: white; font-weight: 500;\">\n                            💡 智能识别 · ⚠️ 风险分析 · 🛡️ 安全评估\n                        </span>\n                    </div>\n                </div>\n            """)
+                <div style=\"text-align: center; margin-bottom: 2.5rem; padding: 2.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);\">\n                    <h1 style=\"font-size: 48px; color: white; margin: 0 0 15px 0; font-weight: 900; text-shadow: 2px 3px 8px rgba(0,0,0,0.4);\">\n                        🔥 智慧骑士系统 🔥\n                    </h1>\n                    <p style=\"font-size: 22px; color: rgba(255,255,255,0.95); margin: 0 0 20px 0; font-style: italic; font-weight: 300;\">\n                        视觉大模型分析 · 识别楼道消防隐患\n                    </p>\n                    <div style=\"display: inline-block; background: rgba(255,255,255,0.2); padding: 10px 25px; border-radius: 30px; border: 2px solid rgba(255,255,255,0.4);\">\n                        <span style=\"font-size: 16px; color: white; font-weight: 500;\">\n                            💡 智能识别 · ⚠️ 风险分析 · 🛡️ 安全评估\n                        </span>\n                    </div>\n                </div>\n            """)
         
         with gr.Row():
             with gr.Column(scale=5, min_width=400):
@@ -476,7 +476,7 @@ def launch_gradio_server(server_name="0.0.0.0", server_port=7788):
         gr.HTML("""
         <div style="margin-top: 30px; padding: 15px; background: #f8fafc; border-radius: 10px; border-top: 3px solid #667eea; text-align: center;">
             <div style="margin-top: 10px; font-size: 12px; color: #9ca3af;">
-                © 消防隐患识别智慧骑士系统
+                © 智慧骑士系统
             </div>
         </div>
         """)
@@ -613,7 +613,7 @@ def launch_gradio_server(server_name="0.0.0.0", server_port=7788):
             outputs=result_html
         )
     
-    print(f"消防隐患识别智慧骑士系统已启动")
+    print(f"智慧骑士系统已启动")
     print(f"使用的模型路径: {args.model_path}")
     print(f"访问地址: http://{server_name}:{server_port}")
     
@@ -627,7 +627,7 @@ def launch_gradio_server(server_name="0.0.0.0", server_port=7788):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="消防隐患识别智慧骑士系统")
+    parser = argparse.ArgumentParser(description="智慧骑士系统")
     
     parser.add_argument('--model_path', default="model/llama-3-2-11b-vision-instruct-4bit-r16-think/last_v2", type=str, 
                     help="模型路径")
